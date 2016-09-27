@@ -5,6 +5,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "processInfo.h"
 
 struct {
   struct spinlock lock;
@@ -445,12 +446,23 @@ procdump(void)
 
 
 int
-getprocs(void)
+getprocs(struct ProcessInfo processInfoTable[NPROC])
 {
 
-    //acquire(&ptable.lock);
-    // TODO: acquire lock on table and populate processInfoTable
-    //release(&ptable.lock);
+    int numProcsses = 0;
+    acquire(&ptable.lock);
+    for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if(p->state != UNUSED){
+            // populate the info table
+            processInfoTable[numProcsses].pid = p->pid;
+            processInfoTable[numProcsses].ppid = p->parent->pid;
+            processInfoTable[numProcsses].state = p->state;
+            processInfoTable[numProcsses].sz = p->sz;
+            safestrcpy(processInfoTable[numProcsses].name, p->name, 16);
+            numProcsses++;
+        }
+    }
+    release(&ptable.lock);
 
-    return NPROC;
+    return numProcsses;
 }

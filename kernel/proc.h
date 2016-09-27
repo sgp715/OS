@@ -1,5 +1,6 @@
 #ifndef _PROC_H_
 #define _PROC_H_
+
 // Segments in proc->gdt.
 // Also known to bootasm.S and trapasm.S
 #define SEG_KCODE 1  // kernel code
@@ -9,6 +10,8 @@
 #define SEG_UDATA 5  // user data+stack
 #define SEG_TSS   6  // this process's task state
 #define NSEGS     7
+
+struct ProcessInfo;
 
 // Per-CPU state
 struct cpu {
