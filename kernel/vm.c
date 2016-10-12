@@ -10,15 +10,14 @@ extern char data[];  // defined in data.S
 
 static pde_t *kpgdir;  // for use in scheduler()
 
-uint
-setpermissions(char *mem){
+int
+setpermissions(uint a){
 
-    int permissions;
-    // if (PADDR(mem) == 0) {
-    //     permissions = PTE_W;
-    // }else {
-        permissions = PTE_W|PTE_U;
-    // }
+    int permissions = PTE_W|PTE_U;
+    if(a == 0){
+        permissions = permissions^PTE_U;
+        // permissions = PTE_P;
+    }
 
     return permissions;
 }
@@ -302,12 +301,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
     memset(mem, 0, PGSIZE);
 
-    int permissions = PTE_W|PTE_U;
-    if(a == 0){
-        // permissions = permissions^PTE_U;
-        permissions = PTE_P;
-    }
-    mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), permissions);
+    mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), setpermissions(a));
 
   }
 
@@ -344,7 +338,7 @@ copyuvm(pde_t *pgdir, uint sz)
     // if(i == 0){
     //     permissions = permissions^PTE_U;
     // }
-    if(mappages(d, (void*)i, PGSIZE, PADDR(mem), PTE_W|PTE_U) < 0)
+    if(mappages(d, (void*)i, PGSIZE, PADDR(mem), setpermissions(i)) < 0)
       goto bad;
   }
   return d;

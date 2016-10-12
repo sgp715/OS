@@ -7,7 +7,7 @@
 #include "traps.h"
 
 #define PAGE (4096)
-#define MAX_PROC_MEM (640 * 1024)
+#define MAX_PROC_MEM (636 * 1024)
 
 char buf[2048];
 char name[3];
@@ -1277,13 +1277,13 @@ sbrktest(void)
 
   // can one allocate the full 640K?
   a = sbrk(0);
-  amt = (640 * 1024) - (uint)a;
+  amt = MAX_PROC_MEM - (uint)a;
   p = sbrk(amt);
   if(p != a){
     printf(stdout, "sbrk test failed 640K test, p %x a %x\n", p, a);
     exit();
   }
-  lastaddr = (char*)(640 * 1024 - 1);
+  lastaddr = (char*)(MAX_PROC_MEM - 1);
   *lastaddr = 99;
 
   // is one forbidden from allocating more than 640K?
@@ -1326,7 +1326,7 @@ sbrktest(void)
   }
 
   // can we read the kernel's memory?
-  for(a = (char*)(640*1024); a < (char*)2000000; a += 50000){
+  for(a = (char*)MAX_PROC_MEM; a < (char*)2000000; a += 50000){
     ppid = getpid();
     pid = fork();
     if(pid < 0){
@@ -1487,13 +1487,13 @@ nullpointertest(void)
   int pid = fork();
   if (pid == 0) {
     int* ip = NULL;
-    printf(stdout, "nullpointertest: failed - %d", *ip);
+    printf(stdout, "nullpointertest: failed - %d\n", *ip);
   } else if(pid < 0){
     printf(stdout, "nullpointertest: fork failed\n");
     exit();
   }
 
-  printf(stdout, "If you were unable to print the pointer,  nullpointertest ok");
+  printf(stdout, "If you were unable to print the pointer,  nullpointertest ok\n");
 
   wait();
 
@@ -1510,11 +1510,11 @@ main(int argc, char *argv[])
   }
   close(open("usertests.ran", O_CREATE));
 
-  //nullpointertest();
+  nullpointertest();
 
   bigargtest();
   bsstest();
-  // sbrktest();
+  sbrktest();
   validatetest();
 
   opentest();
