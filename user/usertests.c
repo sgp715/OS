@@ -1484,7 +1484,7 @@ void
 nullpointertest(void)
 {
 
-  int pid = fork()
+  int pid = fork();
   if (pid == 0) {
     int* ip = NULL;
     printf(stdout, "nullpointertest: failed - %d", *ip);
@@ -1514,7 +1514,7 @@ main(int argc, char *argv[])
 
   bigargtest();
   bsstest();
-  // sbrktest();
+  sbrktest();
   validatetest();
 
   opentest();
