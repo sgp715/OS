@@ -1497,7 +1497,7 @@ main(int argc, char *argv[])
   }
   close(open("usertests.ran", O_CREATE));
 
-  nullpointertest();
+  //nullpointertest();
 
   bigargtest();
   bsstest();
@@ -1516,7 +1516,7 @@ main(int argc, char *argv[])
 
   rmdot();
   fourteen();
-  // bigfile();
+  bigfile();
   subdir();
   concreate();
   linktest();
@@ -1527,7 +1527,7 @@ main(int argc, char *argv[])
   dirfile();
   iref();
   forktest();
-  // bigdir(); // slow
+  bigdir(); // slow
 
   exectest();
 

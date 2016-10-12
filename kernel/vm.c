@@ -14,11 +14,11 @@ uint
 setpermissions(char *mem){
 
     int permissions;
-    if (PADDR(mem) == 0) {
-        permissions = PTE_W;
-    }else {
+    // if (PADDR(mem) == 0) {
+    //     permissions = PTE_W;
+    // }else {
         permissions = PTE_W|PTE_U;
-    }
+    // }
 
     return permissions;
 }
@@ -242,24 +242,28 @@ int
 allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
   char *mem;
-  uint a;
+  uint vold;
+  uint vnew;
 
-  if(newsz > USERTOP)
+  // increment the addresses by one page
+  vold = PGROUNDUP(oldsz + PGSIZE);
+  vnew = PGROUNDUP(newsz + PGSIZE);
+
+  if(vnew > USERTOP)
     return 0;
-  if(newsz < oldsz)
+  if(vnew < vold)
     return oldsz;
 
-  a = PGROUNDUP(oldsz);
-  for(; a < newsz; a += PGSIZE){
+  for(; vold < vnew; vold += PGSIZE){
     mem = kalloc();
     if(mem == 0){
       cprintf("allocuvm out of memory\n");
-      deallocuvm(pgdir, newsz, oldsz);
+      deallocuvm(pgdir, vnew, vold);
       return 0;
     }
 
     memset(mem, 0, PGSIZE);
-    mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), setpermissions(mem));
+    mappages(pgdir, (char*)vold, PGSIZE, PADDR(mem), PTE_W|PTE_U);
   }
   return newsz;
 }
@@ -275,9 +279,10 @@ copyuvm(pde_t *pgdir, uint sz)
   uint pa, i;
   char *mem;
 
+
   if((d = setupkvm()) == 0)
     return 0;
-  for(i = 0; i < sz; i += PGSIZE){
+  for(i = PGSIZE; i < sz + PGSIZE; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
@@ -285,9 +290,9 @@ copyuvm(pde_t *pgdir, uint sz)
     pa = PTE_ADDR(*pte);
     if((mem = kalloc()) == 0)
       goto bad;
-    memmove(mem, (char*)pa, PGSIZE);
 
-    if(mappages(d, (void*)i, PGSIZE, PADDR(mem), setpermissions(mem)) < 0)
+    memmove(mem, (char*)pa, PGSIZE);
+    if(mappages(d, (void*)i, PGSIZE, PADDR(mem), PTE_W|PTE_U) < 0)
       goto bad;
   }
   return d;
