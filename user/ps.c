@@ -27,7 +27,8 @@ int main(int argc, char *argv[])
     char *fmt = "%d  %s  %d  %s\n"; // format for printing processes
     printf(stdout, "PPID  STATE  SIZE  NAME\n");
     printf(stdout, "-----------------------\n");
-    for (int i = 0; i < numProcessesGotten; i++) {
+    int i;
+    for (i = 0; i < numProcessesGotten; i++) {
 
         // copy the name into a variable
         char name[16];
