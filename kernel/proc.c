@@ -451,7 +451,8 @@ getprocs(struct ProcessInfo processInfoTable[NPROC])
 
     int numProcsses = 0;
     acquire(&ptable.lock);
-    for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    struct proc* p;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
         if(p->state != UNUSED){
             // populate the info table
             processInfoTable[numProcsses].pid = p->pid;
