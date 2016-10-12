@@ -807,7 +807,7 @@ subdir(void)
   }
   write(fd, "ff", 2);
   close(fd);
-  
+
   if(unlink("dd") >= 0){
     printf(1, "unlink dd (non-empty dir) succeeded!\n");
     exit();
@@ -1216,24 +1216,24 @@ forktest(void)
     if(pid == 0)
       exit();
   }
-  
+
   if(n == 1000){
     printf(1, "fork claimed to work 1000 times!\n");
     exit();
   }
-  
+
   for(; n > 0; n--){
     if(wait() < 0){
       printf(1, "wait stopped early\n");
       exit();
     }
   }
-  
+
   if(wait() != -1){
     printf(1, "wait got too many\n");
     exit();
   }
-  
+
   printf(1, "fork test OK\n");
 }
 
@@ -1479,6 +1479,13 @@ bigargtest(void)
   wait();
 }
 
+void
+nullpointertest(void)
+{
+   int* ip = NULL;
+   printf(stdout, "Should not be able to print this null pointer: %d", *ip);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -1489,6 +1496,8 @@ main(int argc, char *argv[])
     exit();
   }
   close(open("usertests.ran", O_CREATE));
+
+  nullpointertest();
 
   bigargtest();
   bsstest();
@@ -1507,7 +1516,7 @@ main(int argc, char *argv[])
 
   rmdot();
   fourteen();
-  bigfile();
+  // bigfile();
   subdir();
   concreate();
   linktest();
@@ -1518,7 +1527,7 @@ main(int argc, char *argv[])
   dirfile();
   iref();
   forktest();
-  bigdir(); // slow
+  // bigdir(); // slow
 
   exectest();
 
