@@ -285,9 +285,9 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   if(newsz < oldsz)
     return oldsz;
 
-  if(oldsz == 0){
-     newsz += PGSIZE;
-  }
+  // if(oldsz == 0){
+  //    newsz += PGSIZE;
+  // }
 
   a = PGROUNDUP(oldsz);
   for(; a < newsz; a += PGSIZE){
@@ -300,7 +300,6 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     }
 
     memset(mem, 0, PGSIZE);
-
     mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), setpermissions(a));
 
   }
@@ -322,7 +321,7 @@ copyuvm(pde_t *pgdir, uint sz)
 
   if((d = setupkvm()) == 0)
     return 0;
-  for(i = PGSIZE; i < sz; i += PGSIZE){
+  for(i = 0; i < sz; i += PGSIZE){
 
     if((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
       panic("copyuvm: pte should exist");
@@ -334,10 +333,6 @@ copyuvm(pde_t *pgdir, uint sz)
 
     memmove(mem, (char*)pa, PGSIZE);
 
-    // int permissions = PTE_W|PTE_U;
-    // if(i == 0){
-    //     permissions = permissions^PTE_U;
-    // }
     if(mappages(d, (void*)i, PGSIZE, PADDR(mem), setpermissions(i)) < 0)
       goto bad;
   }
