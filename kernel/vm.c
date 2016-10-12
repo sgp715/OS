@@ -238,33 +238,79 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
 
 // Allocate page tables and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
+// int
+// allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+// {
+//   char *mem;
+//   uint vold;
+//   uint vnew;
+//
+//   // increment the addresses by one page
+//   vold = PGROUNDUP(oldsz);
+//   vnew = newsz + PGSIZE;
+//
+//   if(vnew > USERTOP)
+//     return 0;
+//   if(newsz < oldsz)
+//     return oldsz;
+//
+//   for(; vold < vnew; vold += PGSIZE){
+//
+//     if(oldsz == 0)
+//
+//
+//     mem = kalloc();
+//     if(mem == 0){
+//       cprintf("allocuvm out of memory\n");
+//       deallocuvm(pgdir, vnew, vold);
+//       return 0;
+//     }
+//
+//     memset(mem, 0, PGSIZE);
+//     mappages(pgdir, (char*)vold, PGSIZE, PADDR(mem), PTE_W|PTE_U);
+//
+//   }
+//
+//   return newsz;
+//
+// }
 int
 allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
+
   char *mem;
-  uint vold;
-  uint vnew;
+  uint a;
 
-  // increment the addresses by one page
-  vold = PGROUNDUP(oldsz + PGSIZE);
-  vnew = PGROUNDUP(newsz + PGSIZE);
-
-  if(vnew > USERTOP)
+  if(newsz + PGSIZE > USERTOP)
     return 0;
-  if(vnew < vold)
+  if(newsz < oldsz)
     return oldsz;
 
-  for(; vold < vnew; vold += PGSIZE){
+  if(oldsz == 0){
+     newsz += PGSIZE;
+  }
+
+  a = PGROUNDUP(oldsz);
+  for(; a < newsz; a += PGSIZE){
+
     mem = kalloc();
     if(mem == 0){
       cprintf("allocuvm out of memory\n");
-      deallocuvm(pgdir, vnew, vold);
+      deallocuvm(pgdir, newsz, oldsz);
       return 0;
     }
 
     memset(mem, 0, PGSIZE);
-    mappages(pgdir, (char*)vold, PGSIZE, PADDR(mem), PTE_W|PTE_U);
+
+    int permissions = PTE_W|PTE_U;
+    if(a == 0){
+        // permissions = permissions^PTE_U;
+        permissions = PTE_P;
+    }
+    mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), permissions);
+
   }
+
   return newsz;
 }
 
@@ -282,7 +328,8 @@ copyuvm(pde_t *pgdir, uint sz)
 
   if((d = setupkvm()) == 0)
     return 0;
-  for(i = PGSIZE; i < sz + PGSIZE; i += PGSIZE){
+  for(i = PGSIZE; i < sz; i += PGSIZE){
+
     if((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
@@ -292,6 +339,11 @@ copyuvm(pde_t *pgdir, uint sz)
       goto bad;
 
     memmove(mem, (char*)pa, PGSIZE);
+
+    // int permissions = PTE_W|PTE_U;
+    // if(i == 0){
+    //     permissions = permissions^PTE_U;
+    // }
     if(mappages(d, (void*)i, PGSIZE, PADDR(mem), PTE_W|PTE_U) < 0)
       goto bad;
   }

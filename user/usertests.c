@@ -1241,15 +1241,16 @@ void
 sbrktest(void)
 {
   int fds[2], pid, pids[32], ppid;
-  char *a, *b, *c, *lastaddr, *oldbrk, *p, scratch;
+  char *a, *c, *lastaddr, *oldbrk, *p, scratch;
   uint amt;
+  int i;
 
   printf(stdout, "sbrk test\n");
   oldbrk = sbrk(0);
 
+  char *b;
   // can one sbrk() less than a page?
   a = sbrk(0);
-  int i;
   for(i = 0; i < 5000; i++){
     b = sbrk(1);
     if(b != a){
@@ -1482,8 +1483,20 @@ bigargtest(void)
 void
 nullpointertest(void)
 {
-   int* ip = NULL;
-   printf(stdout, "Should not be able to print this null pointer: %d", *ip);
+
+  int pid = fork();
+  if (pid == 0) {
+    int* ip = NULL;
+    printf(stdout, "nullpointertest: failed - %d", *ip);
+  } else if(pid < 0){
+    printf(stdout, "nullpointertest: fork failed\n");
+    exit();
+  }
+
+  printf(stdout, "If you were unable to print the pointer,  nullpointertest ok");
+
+  wait();
+
 }
 
 int
@@ -1501,7 +1514,7 @@ main(int argc, char *argv[])
 
   bigargtest();
   bsstest();
-  sbrktest();
+  // sbrktest();
   validatetest();
 
   opentest();
