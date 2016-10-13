@@ -10,17 +10,6 @@ extern char data[];  // defined in data.S
 
 static pde_t *kpgdir;  // for use in scheduler()
 
-int
-setpermissions(uint a){
-
-  int permissions = PTE_W|PTE_U;
-  if (a == 0) {
-    permissions = permissions^PTE_U;
-  }
-
-  return permissions;
-}
-
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
 void
@@ -257,7 +246,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     }
 
     memset(mem, 0, PGSIZE);
-    mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), setpermissions(a));
+    mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), PTE_W|PTE_U);
 
   }
 
@@ -278,7 +267,7 @@ copyuvm(pde_t *pgdir, uint sz)
 
   if((d = setupkvm()) == 0)
     return 0;
-  for(i = 0; i < sz; i += PGSIZE){
+  for(i = PGSIZE; i < sz; i += PGSIZE){
 
     if((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
       panic("copyuvm: pte should exist");
