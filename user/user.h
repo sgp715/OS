@@ -27,7 +27,11 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+
+// my stuff
 int getprocs(struct ProcessInfo*);
+void* shmem_access(int page_number);
+int shmem_count(int page_number);
 
 // user library functions (ulib.c)
 int stat(char*, struct stat*);
