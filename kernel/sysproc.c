@@ -105,14 +105,43 @@ sys_getprocs(void)
 
 }
 
+bool
+check_sharedmem_range(int page_number)
+{
+  if (page_number > 3){
+    return false;
+  }
+
+  if (page_number < 0){
+      return false;
+  }
+
+  return true;
+}
+
 int
 sys_shmem_access(void)
 {
-  return NULL;
+  if(argint(0, &page_number) < 0)
+    return NULL;
+
+  if (check_sharedmem_range(page_number == false) {
+    return NULL;
+  }
+
+  return 0;
 }
 
 int
 sys_shmem_count(void)
 {
-  return -1;
+
+  if(argint(0, &page_number) < 0)
+    return -1;
+
+  if (check_sharedmem_range(page_number == false) {
+    return -1;
+  }
+
+  return 0;
 }
