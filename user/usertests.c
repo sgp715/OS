@@ -1241,16 +1241,15 @@ void
 sbrktest(void)
 {
   int fds[2], pid, pids[32], ppid;
-  char *a, *c, *lastaddr, *oldbrk, *p, scratch;
+  char *a, *b, *c, *lastaddr, *oldbrk, *p, scratch;
   uint amt;
-  int i;
 
   printf(stdout, "sbrk test\n");
   oldbrk = sbrk(0);
 
-  char *b;
   // can one sbrk() less than a page?
   a = sbrk(0);
+  int i;
   for(i = 0; i < 5000; i++){
     b = sbrk(1);
     if(b != a){
@@ -1277,17 +1276,19 @@ sbrktest(void)
 
   // can one allocate the full 640K?
   a = sbrk(0);
-  amt = (640 * 1024) - (uint)a;
+  amt = ((640 - 4 - 16) * 1024) - (uint)a;
   p = sbrk(amt);
   if(p != a){
     printf(stdout, "sbrk test failed 640K test, p %x a %x\n", p, a);
     exit();
   }
-  lastaddr = (char*)(640 * 1024 - 1);
+
+  lastaddr = (char*)((640 - 4 - 16) * 1024 - 1);
   *lastaddr = 99;
 
   // is one forbidden from allocating more than 640K?
-  c = sbrk(4096);
+  int allocAmt = 4096*6;
+  c = sbrk(allocAmt);
   if(c != (char*)0xffffffff){
     printf(stdout, "sbrk allocated more than 640K, c %x\n", c);
     exit();
@@ -1295,21 +1296,21 @@ sbrktest(void)
 
   // can one de-allocate?
   a = sbrk(0);
-  c = sbrk(-4096);
+  c = sbrk(-allocAmt);
   if(c == (char*)0xffffffff){
     printf(stdout, "sbrk could not deallocate\n");
     exit();
   }
   c = sbrk(0);
-  if(c != a - 4096){
+  if(c != a - allocAmt){
     printf(stdout, "sbrk deallocation produced wrong address, a %x c %x\n", a, c);
     exit();
   }
 
   // can one re-allocate that page?
   a = sbrk(0);
-  c = sbrk(4096);
-  if(c != a || sbrk(0) != a + 4096){
+  c = sbrk(allocAmt);
+  if(c != a || sbrk(0) != a + allocAmt){
     printf(stdout, "sbrk re-allocation failed, a %x c %x\n", a, c);
     exit();
   }
@@ -1319,7 +1320,7 @@ sbrktest(void)
     exit();
   }
 
-  c = sbrk(4096);
+  c = sbrk(allocAmt);
   if(c != (char*)0xffffffff){
     printf(stdout, "sbrk was able to re-allocate beyond 640K, c %x\n", c);
     exit();
@@ -1417,7 +1418,7 @@ validatetest(void)
   printf(stdout, "validate test\n");
   hi = 1100*1024;
 
-  for(p = 0; p <= (uint)hi; p += 4096){
+  for(p = 4096; p <= (uint)hi; p += 4096){
     if((pid = fork()) == 0){
       // try to crash the kernel by passing in a badly placed integer
       validateint((int*)p);
@@ -1510,7 +1511,8 @@ main(int argc, char *argv[])
   }
   close(open("usertests.ran", O_CREATE));
 
-  //nullpointertest();
+  // my tests
+  nullpointertest();
 
   bigargtest();
   bsstest();
