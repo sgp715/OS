@@ -94,12 +94,25 @@ int
 sys_getprocs(void)
 {
 
-    char* processInfoTable;
-    if (argptr(0, &processInfoTable, NPROC * sizeof(struct ProcessInfo)) < 0) {
-        return -1;
-    }
+  char* processInfoTable;
+  if (argptr(0, &processInfoTable, NPROC * sizeof(struct ProcessInfo)) < 0) {
+    return -1;
+  }
 
-    int numProcessesGotten = getprocs((struct ProcessInfo*) processInfoTable);
+  int numProcessesGotten = getprocs((struct ProcessInfo*) processInfoTable);
 
-    return numProcessesGotten;
+  return numProcessesGotten;
+
+}
+
+int
+sys_shmem_access(void)
+{
+  return NULL;
+}
+
+int
+sys_shmem_count(void)
+{
+  return -1;
 }
