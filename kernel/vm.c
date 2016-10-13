@@ -10,18 +10,6 @@ extern char data[];  // defined in data.S
 
 static pde_t *kpgdir;  // for use in scheduler()
 
-int
-setpermissions(uint a){
-
-    int permissions = PTE_W|PTE_U;
-    if(a == 0){
-        permissions = permissions^PTE_U;
-        // permissions = PTE_P;
-    }
-
-    return permissions;
-}
-
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
 void
@@ -235,44 +223,6 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
   return 0;
 }
 
-// Allocate page tables and physical memory to grow process from oldsz to
-// newsz, which need not be page aligned.  Returns new size or 0 on error.
-// int
-// allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
-// {
-//   char *mem;
-//   uint vold;
-//   uint vnew;
-//
-//   // increment the addresses by one page
-//   vold = PGROUNDUP(oldsz);
-//   vnew = newsz + PGSIZE;
-//
-//   if(vnew > USERTOP)
-//     return 0;
-//   if(newsz < oldsz)
-//     return oldsz;
-//
-//   for(; vold < vnew; vold += PGSIZE){
-//
-//     if(oldsz == 0)
-//
-//
-//     mem = kalloc();
-//     if(mem == 0){
-//       cprintf("allocuvm out of memory\n");
-//       deallocuvm(pgdir, vnew, vold);
-//       return 0;
-//     }
-//
-//     memset(mem, 0, PGSIZE);
-//     mappages(pgdir, (char*)vold, PGSIZE, PADDR(mem), PTE_W|PTE_U);
-//
-//   }
-//
-//   return newsz;
-//
-// }
 int
 allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
@@ -291,12 +241,12 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     mem = kalloc();
     if(mem == 0){
       cprintf("allocuvm out of memory\n");
-      deallocuvm(pgdir, newsz, oldsz);
+      deallocuvm(pgdir, newsz, oldsz + PGSIZE);
       return 0;
     }
 
     memset(mem, 0, PGSIZE);
-    mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), setpermissions(a));
+    mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), PTE_W|PTE_U);
 
   }
 
@@ -328,8 +278,7 @@ copyuvm(pde_t *pgdir, uint sz)
       goto bad;
 
     memmove(mem, (char*)pa, PGSIZE);
-
-    if(mappages(d, (void*)i, PGSIZE, PADDR(mem), setpermissions(i)) < 0)
+    if(mappages(d, (void*)i, PGSIZE, PADDR(mem), PTE_W|PTE_U) < 0)
       goto bad;
   }
   return d;
