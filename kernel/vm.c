@@ -5,10 +5,17 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "spinlock.h"
 
 extern char data[];  // defined in data.S
 
 static pde_t *kpgdir;  // for use in scheduler()
+
+struct {
+    struct spinlock lock;
+    int refcounts[4];
+    char *sharememaddr[4];
+} sharedmeminfo;
 
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
