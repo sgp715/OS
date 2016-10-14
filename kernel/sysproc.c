@@ -105,43 +105,47 @@ sys_getprocs(void)
 
 }
 
-bool
-check_sharedmem_range(int page_number)
-{
-  if (page_number > 3){
-    return false;
+int
+check_sharedmem_range(int page_number) {
+  if (page_number > 3) {
+    return 0;
   }
 
-  if (page_number < 0){
-      return false;
+  if (page_number < 0) {
+      return 0;
   }
 
-  return true;
+  return 1;
 }
 
 int
 sys_shmem_access(void)
 {
+
+  int page_number;
+
   if(argint(0, &page_number) < 0)
     return NULL;
 
-  if (check_sharedmem_range(page_number == false) {
+  if (check_sharedmem_range(page_number) == 0) {
     return NULL;
   }
 
-  return 0;
+  return (int) shmem_access(page_number);;
 }
 
 int
 sys_shmem_count(void)
 {
 
+  int page_number;
+
   if(argint(0, &page_number) < 0)
     return -1;
 
-  if (check_sharedmem_range(page_number == false) {
+  if (check_sharedmem_range(page_number) == 0) {
     return -1;
   }
 
-  return 0;
+  return shmem_count(page_number);;
 }

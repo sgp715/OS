@@ -260,6 +260,32 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   return newsz;
 }
 
+// Deallocate user pages to bring the process size from oldsz to
+// newsz.  oldsz and newsz need not be page-aligned, nor does newsz
+// need to be less than oldsz.  oldsz can be larger than the actual
+// process size.  Returns the new process size.
+int
+deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+{
+  pte_t *pte;
+  uint a, pa;
+
+  if(newsz >= oldsz)
+    return oldsz;
+
+  a = PGROUNDUP(newsz);
+  for(; a  < oldsz; a += PGSIZE){
+    pte = walkpgdir(pgdir, (char*)a, 0);
+    if(pte && (*pte & PTE_P) != 0){
+      pa = PTE_ADDR(*pte);
+      if(pa == 0)
+        panic("kfree");
+      kfree((char*)pa);
+      *pte = 0;
+    }
+  }
+  return newsz;
+}
 
 // Given a parent process's page table, create a copy
 // of it for a child.
@@ -295,31 +321,20 @@ bad:
   return 0;
 }
 
-// Deallocate user pages to bring the process size from oldsz to
-// newsz.  oldsz and newsz need not be page-aligned, nor does newsz
-// need to be less than oldsz.  oldsz can be larger than the actual
-// process size.  Returns the new process size.
-int
-deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+void*
+shmem_access(int page_number)
 {
-  pte_t *pte;
-  uint a, pa;
 
-  if(newsz >= oldsz)
-    return oldsz;
+  return NULL;
 
-  a = PGROUNDUP(newsz);
-  for(; a  < oldsz; a += PGSIZE){
-    pte = walkpgdir(pgdir, (char*)a, 0);
-    if(pte && (*pte & PTE_P) != 0){
-      pa = PTE_ADDR(*pte);
-      if(pa == 0)
-        panic("kfree");
-      kfree((char*)pa);
-      *pte = 0;
-    }
-  }
-  return newsz;
+}
+
+int
+shmem_count(int page_number)
+{
+
+  return -1;
+
 }
 
 // Free a page table and all the physical memory pages
