@@ -14,8 +14,35 @@ static pde_t *kpgdir;  // for use in scheduler()
 struct {
     struct spinlock lock;
     int refcounts[4];
-    char *sharememaddr[4];
-} sharedmeminfo;
+    char *shmemaddr[4];
+} shmeminfo;
+
+void
+initshmeminfo(){
+
+    shmeminfo.refcounts[0] = 0;
+    shmeminfo.refcounts[1] = 0;
+    shmeminfo.refcounts[2] = 0;
+    shmeminfo.refcounts[3] = 0;
+
+    shmeminfo.shmemaddr[0] = NULL;
+    shmeminfo.shmemaddr[1] = NULL;
+    shmeminfo.shmemaddr[2] = NULL;
+    shmeminfo.shmemaddr[3] = NULL;
+}
+
+
+// initialize the shmeminfo
+// shmeminfo.refcounts[0] = 0;
+// shmeminfo.refcounts[1] = 0;
+// shmeminfo.refcounts[2] = 0;
+// shmeminfo.refcounts[3] = 0;
+//
+// shmeminfo.shmemaddr[0] = NULL;
+// shmeminfo.shmemaddr[1] = NULL;
+// shmeminfo.shmemaddr[2] = NULL;
+// shmeminfo.shmemaddr[3] = NULL;
+
 
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
@@ -198,6 +225,9 @@ inituvm(pde_t *pgdir, char *init, uint sz)
 {
   char *mem;
 
+  // initialize the mem info to be zeroed out
+  initshmeminfo();
+
   if(sz >= PGSIZE)
     panic("inituvm: more than a page");
   mem = kalloc();
@@ -237,7 +267,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   char *mem;
   uint a;
 
-  if(newsz + PGSIZE > USERTOP)
+  if(newsz + PGSIZE > SHMEMBOTTOM) // not allowed to allocate into shared mem
     return 0;
   if(newsz < oldsz)
     return oldsz;
@@ -337,7 +367,12 @@ int
 shmem_count(int page_number)
 {
 
-  return -1;
+  int refcount;
+  acquire(&shmeminfo.lock);
+  refcount = shmeminfo.refcounts[page_number];
+  release(&shmeminfo.lock);
+
+  return refcount;
 
 }
 
