@@ -37,9 +37,11 @@ allocproc(void)
   char *sp;
 
   acquire(&ptable.lock);
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == UNUSED)
       goto found;
+    // TODO: initialize all of the shared memory to 0
+  }
   release(&ptable.lock);
   return 0;
 
@@ -134,6 +136,9 @@ fork(void)
   // Allocate process.
   if((np = allocproc()) == 0)
     return -1;
+  // TODO: after process shared mem is initialized to 0
+  // look up parent and change if to correspond and requests
+  // to reference the same pages
 
   // Copy process state from p.
   if((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){

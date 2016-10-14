@@ -77,6 +77,8 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  // TODO: make an array that 1 if process is using shared mem page and 0 Otherwise
+  int sharedmemused[4];
 };
 
 // Process memory is laid out contiguously, low addresses first:
