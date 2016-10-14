@@ -174,6 +174,7 @@ int             copyout(pde_t*, uint, void*, uint);
 int getprocs(struct ProcessInfo*);
 
 void* shmem_access(int page_number);
+void shmem_free(struct proc*);
 int shmem_count(int page_number);
 
 

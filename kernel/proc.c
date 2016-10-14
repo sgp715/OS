@@ -40,7 +40,6 @@ allocproc(void)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == UNUSED)
       goto found;
-    // TODO: initialize all of the shared memory to 0
   }
   release(&ptable.lock);
   return 0;
@@ -48,6 +47,13 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+
+  //TODO: make this into function
+  // set all to 0 indicating it is not using any of them
+  p->shmemused[0] = 0;
+  p->shmemused[1] = 0;
+  p->shmemused[2] = 0;
+  p->shmemused[3] = 0;
   release(&ptable.lock);
 
   // Allocate kernel stack if possible.
@@ -136,9 +142,11 @@ fork(void)
   // Allocate process.
   if((np = allocproc()) == 0)
     return -1;
-  // TODO: after process shared mem is initialized to 0
-  // look up parent and change if to correspond and requests
-  // to reference the same pages
+
+// TODO: after process shared mem is initialized to 0
+// look up parent and change if to correspond and requests
+// to reference the same pages
+// i.e. call shmem_access on
 
   // Copy process state from p.
   if((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
@@ -176,6 +184,9 @@ exit(void)
 
   if(proc == initproc)
     panic("init exiting");
+
+  // release the shared mempages
+  shmem_free(proc);
 
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){

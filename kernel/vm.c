@@ -31,19 +31,6 @@ initshmeminfo(){
     shmeminfo.shmemaddr[3] = NULL;
 }
 
-
-// initialize the shmeminfo
-// shmeminfo.refcounts[0] = 0;
-// shmeminfo.refcounts[1] = 0;
-// shmeminfo.refcounts[2] = 0;
-// shmeminfo.refcounts[3] = 0;
-//
-// shmeminfo.shmemaddr[0] = NULL;
-// shmeminfo.shmemaddr[1] = NULL;
-// shmeminfo.shmemaddr[2] = NULL;
-// shmeminfo.shmemaddr[3] = NULL;
-
-
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
 void
@@ -359,7 +346,71 @@ void*
 shmem_access(int page_number)
 {
 
-  return NULL;
+  void* addr;
+  pde_t *pgdir;
+  void* shva;
+
+  // see if we have already
+  int already = proc->shmemused[page_number];
+
+  if (already) {
+
+    acquire(&shmeminfo.lock);
+    shva = shmeminfo.shmemaddr[page_number];
+    release(&shmeminfo.lock);
+
+    return shva;
+  }
+
+  pgdir = proc->pgdir;
+
+  addr = kalloc();
+
+  // shared page virtual address
+  shva = (void*)(USERTOP - (PGSIZE * (page_number + 1)));
+
+  memset(addr, 0, PGSIZE);
+  mappages(pgdir, (void*)shva, PGSIZE, PADDR(addr), PTE_W|PTE_U);
+
+  //set the new share mem info
+  acquire(&shmeminfo.lock);
+  // cprintf("refcounts: %d\n", shmeminfo.refcounts[page_number]);
+  shmeminfo.refcounts[page_number] = shmeminfo.refcounts[page_number] + 1;
+  shmeminfo.shmemaddr[page_number] = shva;
+  release(&shmeminfo.lock);
+
+  // increment the process shared mem array
+  proc->shmemused[page_number]++;
+
+  return shva;
+}
+
+void
+shmem_free(struct proc *p)
+{
+
+  int shmemused[4];
+  shmemused[0] = p->shmemused[0];
+  shmemused[1] = p->shmemused[1];
+  shmemused[2] = p->shmemused[2];
+  shmemused[3] = p->shmemused[3];
+
+  // iterate through and see what pages it was sharing
+  int i;
+  for(i = 0; i < 4; i++){
+
+      // if it is set then reduce refcount
+      if (shmemused[i]) {
+          shmeminfo.refcounts[i]--;
+
+        // if it goes to 0 then we free the page
+        if (shmeminfo.refcounts[i] == 0) {
+          // kfree(shmeminfo.shmemaddr[i]);
+          shmeminfo.shmemaddr[i] = NULL;
+        }
+
+      }
+  }
 
 }
 
@@ -369,6 +420,7 @@ shmem_count(int page_number)
 
   int refcount;
   acquire(&shmeminfo.lock);
+  // cprintf("refcounts: %d\n", shmeminfo.refcounts[page_number]);
   refcount = shmeminfo.refcounts[page_number];
   release(&shmeminfo.lock);
 
