@@ -89,12 +89,17 @@ void
 whenProcessExits_SharedPageIsFreed()
 {
   printf(1, "Test: whenProcessExits_SharedPageIsFreed...");
+  printf(1, "forking...");
   int pid = fork();
 
+  printf(1, "waiting for processes");
   if(pid == 0){
+    printf(1, "child process");
     // in child
     char* sharedPage = shmem_access(0);
+    printf(1, "just accessed page");
     sharedPage[0] = 42;
+    printf(1, "just tried to set a value");
     exit();
   } else {
     // in parent

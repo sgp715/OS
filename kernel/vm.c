@@ -107,8 +107,8 @@ mappages(pde_t *pgdir, void *la, uint size, uint pa, int perm)
     pte = walkpgdir(pgdir, a, 1);
     if(pte == 0)
       return -1;
-    if(*pte & PTE_P)
-      panic("remap");
+    // if(*pte & PTE_P)
+    //   panic("remap");
     *pte = pa | perm | PTE_P;
     if(a == last)
       break;
@@ -321,6 +321,7 @@ copyuvm(pde_t *pgdir, uint sz)
 
   if((d = setupkvm()) == 0)
     return 0;
+
   for(i = PGSIZE; i < sz; i += PGSIZE){
 
     if((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
@@ -350,37 +351,30 @@ shmem_access(int page_number)
   pde_t *pgdir;
   void* shva;
 
-  // see if we have already
-  int already = proc->shmemused[page_number];
-
-  if (already) {
-
-    acquire(&shmeminfo.lock);
-    shva = shmeminfo.shmemaddr[page_number];
-    release(&shmeminfo.lock);
-
-    return shva;
-  }
-
   pgdir = proc->pgdir;
 
-  addr = kalloc();
+  int already = proc->shmemused[page_number];
+  if (already == 1) {
+    return walkpgdir(pgdir, shmeminfo.shmemaddr[page_number], 0);
+  }
 
-  // shared page virtual address
-  shva = (void*)(USERTOP - (PGSIZE * (page_number + 1)));
+  if (shmeminfo.shmemaddr[page_number]) {
+      addr = shmeminfo.shmemaddr[page_number];
+      shva = walkpgdir(pgdir, addr, 0);
+  } else {
+      addr = kalloc();
+      memset(addr, 0, PGSIZE);
+      shmeminfo.shmemaddr[page_number] = addr;
+      shva = (void*)(USERTOP - (PGSIZE * (page_number + 1)));
+  }
 
-  memset(addr, 0, PGSIZE);
   mappages(pgdir, (void*)shva, PGSIZE, PADDR(addr), PTE_W|PTE_U);
 
-  //set the new share mem info
   acquire(&shmeminfo.lock);
-  // cprintf("refcounts: %d\n", shmeminfo.refcounts[page_number]);
   shmeminfo.refcounts[page_number] = shmeminfo.refcounts[page_number] + 1;
-  shmeminfo.shmemaddr[page_number] = shva;
   release(&shmeminfo.lock);
 
-  // increment the process shared mem array
-  proc->shmemused[page_number]++;
+  proc->shmemused[page_number] = 1;
 
   return shva;
 }
@@ -389,29 +383,46 @@ void
 shmem_free(struct proc *p)
 {
 
+  pte_t *pte;
+  // uint pa;
+  pde_t *pgdir;
+
   int shmemused[4];
   shmemused[0] = p->shmemused[0];
   shmemused[1] = p->shmemused[1];
   shmemused[2] = p->shmemused[2];
   shmemused[3] = p->shmemused[3];
 
+  pgdir = proc->pgdir;
+  if(pgdir == 0)
+    panic("shmem_free: no pgdir");
+
   // iterate through and see what pages it was sharing
+  //   pte = walkpgdir(pgdir, (char*)a, 0);
+  //   if(pte && (*pte & PTE_P) != 0){
+  //     pa = PTE_ADDR(*pte);
+  //     if(pa == 0)
+  //       panic("kfree");
+  //     kfree((char*)pa);
+  //     *pte = 0;
+  //   }
+  // }
   int i;
   for(i = 0; i < 4; i++){
 
-      // if it is set then reduce refcount
-      if (shmemused[i]) {
-          shmeminfo.refcounts[i]--;
+    if (shmemused[i]) {
 
-        // if it goes to 0 then we free the page
-        if (shmeminfo.refcounts[i] == 0) {
-          // kfree(shmeminfo.shmemaddr[i]);
-          shmeminfo.shmemaddr[i] = NULL;
-        }
+      shmeminfo.refcounts[i]--;
 
+      if (shmeminfo.refcounts[i] == 0) {
+        pte = walkpgdir(pgdir, (char*)shmeminfo.shmemaddr[i], 0);
+        // pa = PTE_ADDR(*pte);
+        // kfree((char*)pa);
+        *pte = 0;
+        shmeminfo.shmemaddr[i] = NULL;
       }
+    }
   }
-
 }
 
 int
@@ -420,7 +431,6 @@ shmem_count(int page_number)
 
   int refcount;
   acquire(&shmeminfo.lock);
-  // cprintf("refcounts: %d\n", shmeminfo.refcounts[page_number]);
   refcount = shmeminfo.refcounts[page_number];
   release(&shmeminfo.lock);
 

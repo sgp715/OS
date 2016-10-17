@@ -143,11 +143,6 @@ fork(void)
   if((np = allocproc()) == 0)
     return -1;
 
-// TODO: after process shared mem is initialized to 0
-// look up parent and change if to correspond and requests
-// to reference the same pages
-// i.e. call shmem_access on
-
   // Copy process state from p.
   if((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
     kfree(np->kstack);
@@ -158,6 +153,14 @@ fork(void)
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
+
+  // see if the child should request same pages as parent
+  for(i = 0; i < 4; i++){
+    if(proc->shmemused[i]){
+        shmem_access(i);
+    }
+  }
+  // np->shmemused[0] = proc->shmemused
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
