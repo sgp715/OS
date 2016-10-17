@@ -176,6 +176,7 @@ int getprocs(struct ProcessInfo*);
 void* shmem_access(int page_number);
 void shmem_free(struct proc*);
 int shmem_count(int page_number);
+void shmem_increment_refcounts(int page_number);
 
 
 // number of elements in fixed-size array

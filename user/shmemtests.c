@@ -66,15 +66,21 @@ whenSharingAPage_ParentSeesChangesMadeByChild()
   printf(1, "Test: whenSharingAPage_ParentSeesChangesMadeByChild...");
   char* sharedPage = shmem_access(0);
   sharedPage[0] = 42;
+  printf(1, "\nparent requested shmem...\n");
 
+  printf(1, "forking...\n");
   int pid = fork();
+
   if(pid == 0){
     // in child
+    printf(1, "in child...\n");
     char* childsSharedPage = shmem_access(0);
+    printf(1, "adding to shared mem...\n");
     childsSharedPage[0] = childsSharedPage[0] + 1;
     exit();
   } else {
     // in parent
+    printf(1, "in parent...\n");
     wait(); // wait for child to terminate
     if(sharedPage[0] == 43){
       testPassed();
@@ -89,17 +95,17 @@ void
 whenProcessExits_SharedPageIsFreed()
 {
   printf(1, "Test: whenProcessExits_SharedPageIsFreed...");
-  printf(1, "forking...");
+  // printf(1, "forking...");
   int pid = fork();
 
-  printf(1, "waiting for processes");
+  //printf(1, "waiting for processes");
   if(pid == 0){
-    printf(1, "child process");
+    //printf(1, "child process");
     // in child
     char* sharedPage = shmem_access(0);
-    printf(1, "just accessed page");
+    //printf(1, "just accessed page");
     sharedPage[0] = 42;
-    printf(1, "just tried to set a value");
+    //printf(1, "just tried to set a value");
     exit();
   } else {
     // in parent

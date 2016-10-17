@@ -107,8 +107,13 @@ mappages(pde_t *pgdir, void *la, uint size, uint pa, int perm)
     pte = walkpgdir(pgdir, a, 1);
     if(pte == 0)
       return -1;
-    // if(*pte & PTE_P)
-    //   panic("remap");
+    // TODO: we shouldn't allow all remappings just in the four pages
+    // used for shared memory
+    if(*pte & PTE_P) {
+      cprintf("pte: %x\n", pte);
+      cprintf("*pte: %d\n", *pte);
+      panic("remap");
+    }
     *pte = pa | perm | PTE_P;
     if(a == last)
       break;
@@ -371,7 +376,7 @@ shmem_access(int page_number)
   mappages(pgdir, (void*)shva, PGSIZE, PADDR(addr), PTE_W|PTE_U);
 
   acquire(&shmeminfo.lock);
-  shmeminfo.refcounts[page_number] = shmeminfo.refcounts[page_number] + 1;
+  shmeminfo.refcounts[page_number]++;
   release(&shmeminfo.lock);
 
   proc->shmemused[page_number] = 1;
@@ -387,30 +392,20 @@ shmem_free(struct proc *p)
   // uint pa;
   pde_t *pgdir;
 
-  int shmemused[4];
-  shmemused[0] = p->shmemused[0];
-  shmemused[1] = p->shmemused[1];
-  shmemused[2] = p->shmemused[2];
-  shmemused[3] = p->shmemused[3];
+  //int shmemused[4];
+  // shmemused[0] = p->shmemused[0];
+  // shmemused[1] = p->shmemused[1];
+  // shmemused[2] = p->shmemused[2];
+  // shmemused[3] = p->shmemused[3];
 
   pgdir = proc->pgdir;
   if(pgdir == 0)
     panic("shmem_free: no pgdir");
 
-  // iterate through and see what pages it was sharing
-  //   pte = walkpgdir(pgdir, (char*)a, 0);
-  //   if(pte && (*pte & PTE_P) != 0){
-  //     pa = PTE_ADDR(*pte);
-  //     if(pa == 0)
-  //       panic("kfree");
-  //     kfree((char*)pa);
-  //     *pte = 0;
-  //   }
-  // }
   int i;
   for(i = 0; i < 4; i++){
 
-    if (shmemused[i]) {
+    if (p->shmemused[i]) {
 
       shmeminfo.refcounts[i]--;
 
@@ -436,6 +431,14 @@ shmem_count(int page_number)
 
   return refcount;
 
+}
+
+void
+shmem_increment_refcounts(int page_number)
+{
+    acquire(&shmeminfo.lock);
+    shmeminfo.refcounts[page_number]++;
+    release(&shmeminfo.lock);
 }
 
 // Free a page table and all the physical memory pages

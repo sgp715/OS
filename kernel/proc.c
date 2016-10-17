@@ -50,10 +50,10 @@ found:
 
   //TODO: make this into function
   // set all to 0 indicating it is not using any of them
-  p->shmemused[0] = 0;
-  p->shmemused[1] = 0;
-  p->shmemused[2] = 0;
-  p->shmemused[3] = 0;
+  // p->shmemused[0] = 0;
+  // p->shmemused[1] = 0;
+  // p->shmemused[2] = 0;
+  // p->shmemused[3] = 0;
   release(&ptable.lock);
 
   // Allocate kernel stack if possible.
@@ -107,6 +107,12 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+
+  p->shmemused[0] = 0;
+  p->shmemused[1] = 0;
+  p->shmemused[2] = 0;
+  p->shmemused[3] = 0;
+  
   release(&ptable.lock);
 }
 
@@ -154,13 +160,16 @@ fork(void)
   np->parent = proc;
   *np->tf = *proc->tf;
 
+  np->shmemused[0] = proc->shmemused[0];
+  np->shmemused[1] = proc->shmemused[1];
+  np->shmemused[2] = proc->shmemused[2];
+  np->shmemused[3] = proc->shmemused[3];
   // see if the child should request same pages as parent
   for(i = 0; i < 4; i++){
-    if(proc->shmemused[i]){
-        shmem_access(i);
+    if(np->shmemused[i]){
+        shmem_increment_refcounts(i);
     }
   }
-  // np->shmemused[0] = proc->shmemused
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
