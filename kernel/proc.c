@@ -112,7 +112,7 @@ userinit(void)
   p->shmemused[1] = 0;
   p->shmemused[2] = 0;
   p->shmemused[3] = 0;
-  
+
   release(&ptable.lock);
 }
 

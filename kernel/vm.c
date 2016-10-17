@@ -20,6 +20,9 @@ struct {
 void
 initshmeminfo(){
 
+    initlock(&shmeminfo.lock, "shmeminfo");
+
+    acquire(&shmeminfo.lock);
     shmeminfo.refcounts[0] = 0;
     shmeminfo.refcounts[1] = 0;
     shmeminfo.refcounts[2] = 0;
@@ -29,6 +32,8 @@ initshmeminfo(){
     shmeminfo.shmemaddr[1] = NULL;
     shmeminfo.shmemaddr[2] = NULL;
     shmeminfo.shmemaddr[3] = NULL;
+    release(&shmeminfo.lock);
+
 }
 
 // Allocate one page table for the machine for the kernel address
@@ -356,11 +361,20 @@ shmem_access(int page_number)
   pde_t *pgdir;
   void* shva;
 
+  acquire(&shmeminfo.lock);
+
   pgdir = proc->pgdir;
 
   int already = proc->shmemused[page_number];
   if (already == 1) {
-    return walkpgdir(pgdir, shmeminfo.shmemaddr[page_number], 0);
+    if (shmeminfo.shmemaddr[page_number] != NULL) {
+      shva = walkpgdir(pgdir, shmeminfo.shmemaddr[page_number], 0);
+      release(&shmeminfo.lock);
+      return shva;
+    }
+    shva = NULL;
+    goto bad;
+
   }
 
   if (shmeminfo.shmemaddr[page_number]) {
@@ -368,6 +382,10 @@ shmem_access(int page_number)
       shva = walkpgdir(pgdir, addr, 0);
   } else {
       addr = kalloc();
+      if (addr == 0){
+          shva = NULL;
+          goto bad;
+      }
       memset(addr, 0, PGSIZE);
       shmeminfo.shmemaddr[page_number] = addr;
       shva = (void*)(USERTOP - (PGSIZE * (page_number + 1)));
@@ -375,13 +393,14 @@ shmem_access(int page_number)
 
   mappages(pgdir, (void*)shva, PGSIZE, PADDR(addr), PTE_W|PTE_U);
 
-  acquire(&shmeminfo.lock);
   shmeminfo.refcounts[page_number]++;
-  release(&shmeminfo.lock);
 
   proc->shmemused[page_number] = 1;
 
+ bad:
+  release(&shmeminfo.lock);
   return shva;
+
 }
 
 void
@@ -392,15 +411,11 @@ shmem_free(struct proc *p)
   uint pa;
   pde_t *pgdir;
 
-  //int shmemused[4];
-  // shmemused[0] = p->shmemused[0];
-  // shmemused[1] = p->shmemused[1];
-  // shmemused[2] = p->shmemused[2];
-  // shmemused[3] = p->shmemused[3];
-
   pgdir = proc->pgdir;
   if(pgdir == 0)
     panic("shmem_free: no pgdir");
+
+  acquire(&shmeminfo.lock);
 
   int i;
   for(i = 0; i < 4; i++){
@@ -418,6 +433,9 @@ shmem_free(struct proc *p)
       }
     }
   }
+
+  release(&shmeminfo.lock);
+
 }
 
 int
