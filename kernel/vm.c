@@ -452,11 +452,42 @@ shmem_count(int page_number)
 }
 
 void
-shmem_increment_refcounts(int page_number)
+shmem_fork_child(struct proc *np)
 {
-    acquire(&shmeminfo.lock);
-    shmeminfo.refcounts[page_number]++;
-    release(&shmeminfo.lock);
+
+    pte_t *pte;
+    uint pa;
+    int i;
+
+    for(i = SHMEMBOTTOM; i < USERTOP; i += PGSIZE){
+
+      if((pte = walkpgdir(proc->pgdir, (void*)i, 0)) == 0)
+        continue;
+      if(!(*pte & PTE_P))
+        continue;
+      pa = PTE_ADDR(*pte);
+      // if((mem = kalloc()) == 0)
+      //   goto bad;
+
+      // memmove(mem, (char*)pa, PGSIZE);
+      if(mappages(np->pgdir, (void*)i, PGSIZE, pa, PTE_W|PTE_U) < 0)
+        panic("Could not map shared mem in fork");
+    }
+
+    np->shmemused[0] = proc->shmemused[0];
+    np->shmemused[1] = proc->shmemused[1];
+    np->shmemused[2] = proc->shmemused[2];
+    np->shmemused[3] = proc->shmemused[3];
+
+    // see if the child should request same pages as parent
+    for(i = 0; i < 4; i++){
+      if(np->shmemused[i]){
+          acquire(&shmeminfo.lock);
+          shmeminfo.refcounts[i]++;
+          release(&shmeminfo.lock);
+      }
+    }
+
 }
 
 // Free a page table and all the physical memory pages

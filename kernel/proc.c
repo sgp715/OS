@@ -160,16 +160,8 @@ fork(void)
   np->parent = proc;
   *np->tf = *proc->tf;
 
-  np->shmemused[0] = proc->shmemused[0];
-  np->shmemused[1] = proc->shmemused[1];
-  np->shmemused[2] = proc->shmemused[2];
-  np->shmemused[3] = proc->shmemused[3];
-  // see if the child should request same pages as parent
-  for(i = 0; i < 4; i++){
-    if(np->shmemused[i]){
-        shmem_increment_refcounts(i);
-    }
-  }
+  // some function
+  shmem_fork_child(np);
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
