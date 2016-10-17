@@ -389,7 +389,7 @@ shmem_free(struct proc *p)
 {
 
   pte_t *pte;
-  // uint pa;
+  uint pa;
   pde_t *pgdir;
 
   //int shmemused[4];
@@ -411,8 +411,8 @@ shmem_free(struct proc *p)
 
       if (shmeminfo.refcounts[i] == 0) {
         pte = walkpgdir(pgdir, (char*)shmeminfo.shmemaddr[i], 0);
-        // pa = PTE_ADDR(*pte);
-        // kfree((char*)pa);
+        pa = PTE_ADDR(*pte);
+        kfree((char*)pa);
         *pte = 0;
         shmeminfo.shmemaddr[i] = NULL;
       }
@@ -450,7 +450,7 @@ freevm(pde_t *pgdir)
 
   if(pgdir == 0)
     panic("freevm: no pgdir");
-  deallocuvm(pgdir, USERTOP, 0);
+  deallocuvm(pgdir, SHMEMBOTTOM, 0);
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P)
       kfree((char*)PTE_ADDR(pgdir[i]));
