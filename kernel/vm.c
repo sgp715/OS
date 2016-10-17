@@ -137,7 +137,7 @@ mappages(pde_t *pgdir, void *la, uint size, uint pa, int perm)
 // than its memory.
 //
 // setupkvm() and exec() set up every page table like this:
-//   0..640K          : user memory (text, data, stack, heap)
+//   4..640K          : user memory (text, data, stack, heap)
 //   640K..1M         : mapped direct (for IO space)
 //   1M..end          : mapped direct (for the kernel's text and data)
 //   end..PHYSTOP     : mapped direct (kernel heap and user pages)
@@ -271,6 +271,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
   if(oldsz == 0){
      newsz += PGSIZE;
+     oldsz += PGSIZE;
   }
 
   a = PGROUNDUP(oldsz);
@@ -407,8 +408,8 @@ void
 shmem_free(struct proc *p)
 {
 
-  pte_t *pte;
-  uint pa;
+  // pte_t *pte;
+  // uint pa;
   pde_t *pgdir;
 
   pgdir = proc->pgdir;
@@ -425,13 +426,12 @@ shmem_free(struct proc *p)
       shmeminfo.refcounts[i]--;
 
       if (shmeminfo.refcounts[i] == 0) {
-        pte = walkpgdir(pgdir, (char*)shmeminfo.shmemaddr[i], 0);
-        pa = PTE_ADDR(*pte);
-        kfree((char*)pa);
-        *pte = 0;
+        kfree(shmeminfo.shmemaddr[i]);
         shmeminfo.shmemaddr[i] = NULL;
       }
+
     }
+
   }
 
   release(&shmeminfo.lock);
