@@ -171,7 +171,7 @@ void
 requestSharedMemoryFromAll4Pages()
 {
 
-  printf(1, "Test: requestSharedMemoryFromAll4Pages...");
+  printf(1, "Test: requestSharedMemoryFromAll4Pages...\n");
 
   char* sharedPage0 = shmem_access(0);
   sharedPage0 = sharedPage0 + 0;
@@ -202,16 +202,16 @@ requestSharedMemoryFromAll4Pages()
 
       if (count0 != 2){
           testFailed();
-          expectedVersusActualNumeric("Expected 'count0' to be 2", 0, count0);
+          expectedVersusActualNumeric("Expected 'count0' to be 2", 2, count0);
       } else if (count1 != 2) {
           testFailed();
-          expectedVersusActualNumeric("Expected 'count1' to be 2", 0, count1);
+          expectedVersusActualNumeric("Expected 'count1' to be 2", 2, count1);
       } else if (count2 != 2) {
           testFailed();
-          expectedVersusActualNumeric("Expected 'count2' to be 2", 0, count2);
+          expectedVersusActualNumeric("Expected 'count2' to be 2", 2, count2);
       } else if (count3 != 2) {
           testFailed();
-          expectedVersusActualNumeric("Expected 'count3' to be 2", 0, count3);
+          expectedVersusActualNumeric("Expected 'count3' to be 2", 2, count3);
       } else {
           testPassed();
       }
@@ -249,6 +249,42 @@ whenSharingAPage_ParentSeesChangesMadeByChild(int page_number)
     }
   }
 }
+
+void
+shmemAccessReturnsNullForInvalidPages()
+{
+
+  printf(1, "Test: illegal args to shmem_access should return NULL\n");
+
+  if (shmem_access(-1) != NULL){
+    printf(1, "shmem_access to -1 shoud return NULL");
+    testFailed();
+  } else if (shmem_access(4) != NULL) {
+    printf(1, "shmem_access to 4 shoud return NULL");
+    testFailed();
+  } else  {
+      testPassed();
+  }
+
+}
+
+void
+shmemCountReturnsNegative1ForInvalidPages()
+{
+    printf(1, "Test: illegal args to shmem_count should return -1\n");
+
+    if ((int) shmem_count(-1) != -1){
+      printf(1, "shmem_access to -1 shoud return -1");
+      testFailed();
+  } else if ((int) shmem_count(4) != -1) {
+      printf(1, "shmem_access to 4 shoud return -1");
+      testFailed();
+    } else  {
+        testPassed();
+    }
+
+}
+
 
 int
 main(void)
@@ -319,6 +355,21 @@ main(void)
       for (i = 0; i < 4; i++){
         whenSharingAPage_ParentSeesChangesMadeByChild(i);
       }
+      exit();
+  }
+  wait();
+
+  pid = fork();
+  if(pid == 0) {
+      shmemAccessReturnsNullForInvalidPages();
+      exit();
+  }
+  wait();
+
+
+  pid = fork();
+  if(pid == 0) {
+      shmemCountReturnsNegative1ForInvalidPages();
       exit();
   }
   wait();
