@@ -366,10 +366,12 @@ shmem_access(int page_number)
 
   pgdir = proc->pgdir;
 
+  shva = (void*)(USERTOP - (PGSIZE * (page_number + 1)));
+
   int already = proc->shmemused[page_number];
   if (already == 1) {
     if (shmeminfo.shmemaddr[page_number] != NULL) {
-      shva = walkpgdir(pgdir, shmeminfo.shmemaddr[page_number], 0);
+      // shva = walkpgdir(pgdir, shmeminfo.shmemaddr[page_number], 0);
       release(&shmeminfo.lock);
       return shva;
     }
@@ -380,7 +382,6 @@ shmem_access(int page_number)
 
   if (shmeminfo.shmemaddr[page_number]) {
       addr = shmeminfo.shmemaddr[page_number];
-      shva = walkpgdir(pgdir, addr, 0);
   } else {
       addr = kalloc();
       if (addr == 0){
@@ -389,7 +390,6 @@ shmem_access(int page_number)
       }
       memset(addr, 0, PGSIZE);
       shmeminfo.shmemaddr[page_number] = addr;
-      shva = (void*)(USERTOP - (PGSIZE * (page_number + 1)));
   }
 
   mappages(pgdir, (void*)shva, PGSIZE, PADDR(addr), PTE_W|PTE_U);
@@ -455,38 +455,35 @@ void
 shmem_fork_child(struct proc *np)
 {
 
-    pte_t *pte;
-    uint pa;
+  pte_t *pte;
+  uint pa;
     int i;
 
-    for(i = SHMEMBOTTOM; i < USERTOP; i += PGSIZE){
+  for(i = SHMEMBOTTOM; i < USERTOP; i += PGSIZE){
 
-      if((pte = walkpgdir(proc->pgdir, (void*)i, 0)) == 0)
-        continue;
-      if(!(*pte & PTE_P))
-        continue;
-      pa = PTE_ADDR(*pte);
-      // if((mem = kalloc()) == 0)
-      //   goto bad;
+    if((pte = walkpgdir(proc->pgdir, (void*)i, 0)) == 0)
+      continue;
+    if(!(*pte & PTE_P))
+      continue;
+    pa = PTE_ADDR(*pte);
 
-      // memmove(mem, (char*)pa, PGSIZE);
-      if(mappages(np->pgdir, (void*)i, PGSIZE, pa, PTE_W|PTE_U) < 0)
-        panic("Could not map shared mem in fork");
+    if(mappages(np->pgdir, (void*)i, PGSIZE, pa, PTE_W|PTE_U) < 0)
+      panic("Could not map shared mem in fork");
     }
 
-    np->shmemused[0] = proc->shmemused[0];
-    np->shmemused[1] = proc->shmemused[1];
-    np->shmemused[2] = proc->shmemused[2];
-    np->shmemused[3] = proc->shmemused[3];
+  np->shmemused[0] = proc->shmemused[0];
+  np->shmemused[1] = proc->shmemused[1];
+  np->shmemused[2] = proc->shmemused[2];
+  np->shmemused[3] = proc->shmemused[3];
 
-    // see if the child should request same pages as parent
-    for(i = 0; i < 4; i++){
-      if(np->shmemused[i]){
-          acquire(&shmeminfo.lock);
-          shmeminfo.refcounts[i]++;
-          release(&shmeminfo.lock);
-      }
+  // see if the child should request same pages as parent
+  for(i = 0; i < 4; i++){
+    if(np->shmemused[i]){
+      acquire(&shmeminfo.lock);
+      shmeminfo.refcounts[i]++;
+      release(&shmeminfo.lock);
     }
+  }
 
 }
 
