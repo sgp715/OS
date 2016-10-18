@@ -193,6 +193,66 @@ beforeRequestingSharedMemory_countReturns0()
   }
 }
 
+void
+requestSharedMemoryFromAll4Pages()
+{
+
+  printf(1, "Test: requestSharedMemoryFromAll4Pages...");
+
+  char* sharedPage0 = shmem_access(0);
+  sharedPage0 = sharedPage0 + 0;
+  char* sharedPage1 = shmem_access(1);
+  sharedPage1 = sharedPage1 + 0;
+  char* sharedPage2 = shmem_access(2);
+  sharedPage2 = sharedPage2 + 0;
+  char* sharedPage3 = shmem_access(3);
+  sharedPage3 = sharedPage3 + 0;
+
+  int pid = fork();
+
+  if(pid == 0){
+
+      char* childSharedPage0 = shmem_access(0);
+      childSharedPage0 = childSharedPage0 + 0;
+      char* childSharedPage1 = shmem_access(1);
+      childSharedPage1 = childSharedPage1 + 0;
+      char* childSharedPage2 = shmem_access(2);
+      childSharedPage2 = childSharedPage2 + 0;
+      char* childSharedPage3 = shmem_access(3);
+      childSharedPage3 = childSharedPage3 + 0;
+
+      int count0 = shmem_count(0);
+      int count1 = shmem_count(1);
+      int count2 = shmem_count(2);
+      int count3 = shmem_count(3);
+
+      if (count0 != 2){
+          testFailed();
+          expectedVersusActualNumeric("Expected 'count0' to be 2", 0, count0);
+      } else if (count1 != 2) {
+          testFailed();
+          expectedVersusActualNumeric("Expected 'count1' to be 2", 0, count1);
+      } else if (count2 != 2) {
+          testFailed();
+          expectedVersusActualNumeric("Expected 'count2' to be 2", 0, count2);
+      } else if (count3 != 2) {
+          testFailed();
+          expectedVersusActualNumeric("Expected 'count3' to be 2", 0, count3);
+      } else {
+          testPassed();
+      }
+
+      exit();
+
+  } else {
+
+      wait();
+  }
+
+
+
+}
+
 int
 main(void)
 {
@@ -246,6 +306,13 @@ main(void)
   if(pid == 0){
     beforeRequestingSharedMemory_countReturns0();
     exit();
+  }
+  wait();
+
+  pid = fork();
+  if(pid == 0){
+      requestSharedMemoryFromAll4Pages();
+      exit();
   }
   wait();
 
