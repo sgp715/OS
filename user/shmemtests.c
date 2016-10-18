@@ -61,32 +61,6 @@ afterRequestingSharedMemory_countReturns1()
 }
 
 void
-whenSharingAPage_ParentSeesChangesMadeByChild()
-{
-  printf(1, "Test: whenSharingAPage_ParentSeesChangesMadeByChild...");
-  char* sharedPage = shmem_access(0);
-  sharedPage[0] = 42;
-
-  int pid = fork();
-
-  if(pid == 0){
-    // in child
-    char* childsSharedPage = shmem_access(0);
-    childsSharedPage[0] = childsSharedPage[0] + 1;
-    exit();
-  } else {
-    // in parent
-    wait(); // wait for child to terminate
-    if(sharedPage[0] == 43){
-      testPassed();
-    } else {
-      testFailed();
-      expectedVersusActualNumeric("'sharedPage[0]'", 43, sharedPage[0]);
-    }
-  }
-}
-
-void
 whenProcessExits_SharedPageIsFreed()
 {
   printf(1, "Test: whenProcessExits_SharedPageIsFreed...");
@@ -245,12 +219,35 @@ requestSharedMemoryFromAll4Pages()
       exit();
 
   } else {
-
       wait();
   }
 
+}
 
+void
+whenSharingAPage_ParentSeesChangesMadeByChild(int page_number)
+{
+  printf(1, "Test: whenSharingAPage_ParentSeesChangesMadeByChild for page %d...", page_number);
+  char* sharedPage = shmem_access(page_number);
+  sharedPage[0] = 42;
 
+  int pid = fork();
+
+  if(pid == 0){
+    // in child
+    char* childsSharedPage = shmem_access(page_number);
+    childsSharedPage[0] = childsSharedPage[0] + 1;
+    exit();
+  } else {
+    // in parent
+    wait(); // wait for child to terminate
+    if(sharedPage[0] == 43){
+      testPassed();
+    } else {
+      testFailed();
+      expectedVersusActualNumeric("'sharedPage[0]'", 43, sharedPage[0]);
+    }
+  }
 }
 
 int
@@ -274,12 +271,12 @@ main(void)
   }
   wait();
 
-  pid = fork();
-  if(pid == 0){
-    whenSharingAPage_ParentSeesChangesMadeByChild();
-    exit();
-  }
-  wait();
+  // pid = fork();
+  // if(pid == 0){
+  //   whenSharingAPage_ParentSeesChangesMadeByChild();
+  //   exit();
+  // }
+  // wait();
 
   pid = fork();
   if(pid == 0){
@@ -312,6 +309,16 @@ main(void)
   pid = fork();
   if(pid == 0){
       requestSharedMemoryFromAll4Pages();
+      exit();
+  }
+  wait();
+
+  pid = fork();
+  if(pid == 0) {
+      int i;
+      for (i = 0; i < 4; i++){
+        whenSharingAPage_ParentSeesChangesMadeByChild(i);
+      }
       exit();
   }
   wait();
